@@ -6,6 +6,9 @@ const jumpPower = -14;
 const maxFallSpeed = 8;
 let score = 0;
 
+// Game timing
+let lastTime = performance.now();
+
 // Kongy character
 const kongy = {
   x: 100,
@@ -16,20 +19,25 @@ const kongy = {
   jumping: false
 };
 
-// Game objects
+// Game state
 let candles = [];
 let powerUps = [];
 let candleTimer = 0;
 let nextCandleIn = Math.floor(Math.random() * 60) + 60;
 let powerUpActive = false;
 let powerUpTimer = 0;
-
 let powerUpTimerGlobal = 0;
 let nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
-
 let jumpPressed = false;
 let lastJumpTime = 0;
+let gameOver = false;
 
+// DOM overlay
+const overlay = document.getElementById("gameOverOverlay");
+const restartBtn = document.getElementById("restartBtn");
+const finalScoreText = document.getElementById("finalScoreText");
+
+// Input
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     jumpPressed = true;
@@ -50,7 +58,9 @@ function spawnCandle() {
   });
 }
 
-function update() {
+function update(deltaTime) {
+  if (gameOver) return;
+
   // Physics
   kongy.vy += gravity;
   if (kongy.vy > maxFallSpeed) kongy.vy = maxFallSpeed;
@@ -68,10 +78,10 @@ function update() {
   }
 
   // Move candles
-  candles.forEach(c => c.x -= 3.5);
+  candles.forEach(c => c.x -= 3.5 * deltaTime);
   candles = candles.filter(c => c.x + c.width > 0);
 
-  // Candle spawning
+  // Spawn candles
   candleTimer++;
   if (candleTimer >= nextCandleIn) {
     spawnCandle();
@@ -79,7 +89,7 @@ function update() {
     nextCandleIn = Math.floor(Math.random() * 60) + 60;
   }
 
-  // Power-up spawn (independent)
+  // Spawn power-ups
   powerUpTimerGlobal++;
   if (powerUpTimerGlobal >= nextPowerUpIn) {
     powerUps.push({
@@ -94,10 +104,10 @@ function update() {
   }
 
   // Move power-ups
-  powerUps.forEach(p => p.x -= 3.5);
+  powerUps.forEach(p => p.x -= 3.5 * deltaTime);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
-  // Power-up collision
+  // Power-up collection
   powerUps.forEach((p) => {
     if (
       p.active &&
@@ -117,26 +127,28 @@ function update() {
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
-  // Collision with candles
-  candles.forEach(c => {
+  // Collision detection
+  for (let c of candles) {
     if (
       kongy.x < c.x + c.width &&
       kongy.x + kongy.width > c.x &&
       kongy.y + kongy.height > c.y
     ) {
-      alert("Game Over!\nScore: " + score);
-      window.location.reload();
+      gameOver = true;
+      finalScoreText.innerText = `Your Score: ${score}`;
+      overlay.style.display = "block";
+      return;
     }
-  });
+  }
 
-  // Scoring
+  // Add score
   score += powerUpActive ? 2 : 1;
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Kongy (block)
+  // Kongy
   ctx.fillStyle = "orange";
   ctx.fillRect(kongy.x, kongy.y, kongy.width, kongy.height);
 
@@ -149,19 +161,16 @@ function draw() {
   // Power-Ups
   powerUps.forEach(p => {
     if (p.active) {
-      // Shadow
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
       ctx.beginPath();
       ctx.ellipse(p.x + 10, canvas.height - 5, 12, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Coin
       ctx.fillStyle = "gold";
       ctx.beginPath();
       ctx.arc(p.x + 10, p.y + 10, 10, 0, Math.PI * 2);
       ctx.fill();
 
-      // Label
       ctx.fillStyle = "#000";
       ctx.font = "10px monospace";
       ctx.fillText("x2", p.x + 3, p.y + 14);
@@ -173,7 +182,6 @@ function draw() {
   ctx.font = "18px monospace";
   ctx.fillText("Score: " + score, 680, 30);
 
-  // Pump Mode Message
   if (powerUpActive) {
     ctx.fillStyle = "yellow";
     ctx.font = "bold 22px monospace";
@@ -181,10 +189,34 @@ function draw() {
   }
 }
 
-function loop() {
-  update();
+function gameLoop(currentTime) {
+  const deltaTime = (currentTime - lastTime) / (1000 / 60);
+  lastTime = currentTime;
+
+  update(deltaTime);
   draw();
-  requestAnimationFrame(loop);
+  if (!gameOver) requestAnimationFrame(gameLoop);
 }
 
-loop();
+requestAnimationFrame(gameLoop);
+
+// Restart logic
+restartBtn.onclick = () => {
+  // Reset everything
+  score = 0;
+  candles = [];
+  powerUps = [];
+  candleTimer = 0;
+  powerUpTimerGlobal = 0;
+  powerUpActive = false;
+  powerUpTimer = 0;
+  nextCandleIn = Math.floor(Math.random() * 60) + 60;
+  nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
+  kongy.y = 300;
+  kongy.vy = 0;
+  kongy.jumping = false;
+  gameOver = false;
+  overlay.style.display = "none";
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+};
