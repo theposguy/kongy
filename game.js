@@ -1,16 +1,18 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// Speeds and constants
-const SCROLL_SPEED = 120; // px/sec
+// Game constants
+const SCROLL_SPEED = 120;
 const GRAVITY = 1000;
-const JUMP_FORCE = -450;
+const JUMP_FORCE = -550; // higher jump
 const MAX_FALL_SPEED = 600;
 const CANDLE_WIDTH = 20;
 const CANDLE_MIN_HEIGHT = 40;
 const CANDLE_MAX_HEIGHT = 80;
 const CANDLE_MIN_GAP = 180;
+const MAX_JUMP_HOLD = 0.35; // hold longer
 
+// Game state
 let score = 0;
 let lastTime = performance.now() / 1000;
 
@@ -32,11 +34,8 @@ let powerUpTimer = 0;
 let gameOver = false;
 let jumpPressed = false;
 let lastJumpTime = 0;
-
-// New for variable jump
 let spaceHeld = false;
 let jumpHoldTime = 0;
-const MAX_JUMP_HOLD = 0.25; // seconds
 
 // DOM
 const overlay = document.getElementById("gameOverOverlay");
@@ -58,7 +57,7 @@ document.addEventListener("keyup", (e) => {
   if (e.code === "Space") {
     spaceHeld = false;
     if (kongy.vy < 0 && jumpHoldTime < MAX_JUMP_HOLD) {
-      kongy.vy *= 0.3; // shorten jump if released early
+      kongy.vy *= 0.5; // smoother short-jump
     }
   }
 });
@@ -88,7 +87,7 @@ function spawnPowerUp() {
 function update(dt) {
   if (gameOver) return;
 
-  // Gravity and movement
+  // Gravity
   kongy.vy += GRAVITY * dt;
   if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
   kongy.y += kongy.vy * dt;
@@ -98,7 +97,7 @@ function update(dt) {
     kongy.jumping = false;
   }
 
-  // Jumping logic
+  // Jump logic
   if (!kongy.jumping && jumpPressed && Date.now() - lastJumpTime < 150) {
     kongy.vy = JUMP_FORCE;
     kongy.jumping = true;
@@ -124,7 +123,7 @@ function update(dt) {
     timeSinceLastCandle = 0;
   }
 
-  // Power-ups
+  // Move power-ups
   powerUps.forEach(p => p.x -= SCROLL_SPEED * dt);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
@@ -134,6 +133,7 @@ function update(dt) {
     timeSinceLastPowerUp = 0;
   }
 
+  // Power-up collision
   powerUps.forEach((p) => {
     if (
       p.active &&
@@ -153,6 +153,7 @@ function update(dt) {
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
+  // Collision with candles
   for (let c of candles) {
     if (
       kongy.x < c.x + c.width &&
@@ -166,7 +167,7 @@ function update(dt) {
     }
   }
 
-  // Score
+  // Score (time-based)
   score += dt * (powerUpActive ? 120 : 60);
 }
 
@@ -202,6 +203,7 @@ function draw() {
     }
   });
 
+  // Score
   ctx.fillStyle = "white";
   ctx.font = "18px monospace";
   ctx.fillText("Score: " + Math.floor(score), 680, 30);
@@ -215,7 +217,7 @@ function draw() {
 
 function gameLoop(currentTime) {
   const now = currentTime / 1000;
-  const dt = Math.min(now - lastTime, 0.05);
+  const dt = Math.min(now - lastTime, 0.05); // clamp to 50ms
   lastTime = now;
 
   update(dt);
@@ -225,6 +227,7 @@ function gameLoop(currentTime) {
 
 requestAnimationFrame(gameLoop);
 
+// Restart
 restartBtn.onclick = () => {
   score = 0;
   candles = [];
