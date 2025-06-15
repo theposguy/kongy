@@ -33,14 +33,33 @@ let gameOver = false;
 let jumpPressed = false;
 let lastJumpTime = 0;
 
+// New for variable jump
+let spaceHeld = false;
+let jumpHoldTime = 0;
+const MAX_JUMP_HOLD = 0.25; // seconds
+
+// DOM
 const overlay = document.getElementById("gameOverOverlay");
 const restartBtn = document.getElementById("restartBtn");
 const finalScoreText = document.getElementById("finalScoreText");
 
+// Controls
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
-    jumpPressed = true;
-    lastJumpTime = Date.now();
+    if (!spaceHeld) {
+      jumpPressed = true;
+      lastJumpTime = Date.now();
+    }
+    spaceHeld = true;
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  if (e.code === "Space") {
+    spaceHeld = false;
+    if (kongy.vy < 0 && jumpHoldTime < MAX_JUMP_HOLD) {
+      kongy.vy *= 0.3; // shorten jump if released early
+    }
   }
 });
 
@@ -69,6 +88,7 @@ function spawnPowerUp() {
 function update(dt) {
   if (gameOver) return;
 
+  // Gravity and movement
   kongy.vy += GRAVITY * dt;
   if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
   kongy.y += kongy.vy * dt;
@@ -78,12 +98,19 @@ function update(dt) {
     kongy.jumping = false;
   }
 
+  // Jumping logic
   if (!kongy.jumping && jumpPressed && Date.now() - lastJumpTime < 150) {
     kongy.vy = JUMP_FORCE;
     kongy.jumping = true;
     jumpPressed = false;
+    jumpHoldTime = 0;
   }
 
+  if (kongy.jumping && spaceHeld) {
+    jumpHoldTime += dt;
+  }
+
+  // Move candles
   candles.forEach(c => c.x -= SCROLL_SPEED * dt);
   candles = candles.filter(c => c.x + c.width > 0);
 
@@ -97,6 +124,7 @@ function update(dt) {
     timeSinceLastCandle = 0;
   }
 
+  // Power-ups
   powerUps.forEach(p => p.x -= SCROLL_SPEED * dt);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
@@ -138,21 +166,24 @@ function update(dt) {
     }
   }
 
-  // ✅ Score based on time
+  // Score
   score += dt * (powerUpActive ? 120 : 60);
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Kongy
   ctx.fillStyle = "orange";
   ctx.fillRect(kongy.x, kongy.y, kongy.width, kongy.height);
 
+  // Candles
   candles.forEach(c => {
     ctx.fillStyle = c.color;
     ctx.fillRect(c.x, c.y, c.width, c.height);
   });
 
+  // Power-ups
   powerUps.forEach(p => {
     if (p.active) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
@@ -184,7 +215,7 @@ function draw() {
 
 function gameLoop(currentTime) {
   const now = currentTime / 1000;
-  const dt = Math.min(now - lastTime, 0.05); // clamp
+  const dt = Math.min(now - lastTime, 0.05);
   lastTime = now;
 
   update(dt);
@@ -205,6 +236,7 @@ restartBtn.onclick = () => {
   timeSinceLastPowerUp = 0;
   powerUpTimer = 0;
   powerUpActive = false;
+  jumpHoldTime = 0;
   gameOver = false;
   overlay.style.display = "none";
   lastTime = performance.now() / 1000;
