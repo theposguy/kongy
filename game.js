@@ -3,14 +3,14 @@ const ctx = canvas.getContext("2d");
 
 // ——— Tuned Constants ———
 const SCROLL_SPEED      = 300;    // px/sec
-const GRAVITY           = 1200;   // px/sec² (stronger pull)
-const JUMP_FORCE        = -800;   // px/sec initial (fits screen)
-const MAX_FALL_SPEED    = 1000;   // px/sec
+const GRAVITY           = 1800;   // px/sec² (much stronger pull)
+const JUMP_FORCE        = -900;   // px/sec initial
+const MAX_FALL_SPEED    = 1200;   // px/sec
 const CANDLE_WIDTH      = 20;
 const CANDLE_MIN_HEIGHT = 40;
 const CANDLE_MAX_HEIGHT = 80;
 const CANDLE_MIN_GAP    = 300;    // px
-const MAX_JUMP_HOLD     = 0.2;    // sec (short hold window)
+const MAX_JUMP_HOLD     = 0.1;    // sec (tiny hold window)
 
 let score     = 0;
 let lastTime  = performance.now() / 1000;
@@ -66,7 +66,7 @@ function spawnPowerUp() {
 function update(dt) {
   if (gameOver) return;
 
-  // Gravity & vertical movement
+  // Gravity & movement
   kongy.vy += GRAVITY * dt;
   if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
   kongy.y += kongy.vy * dt;
@@ -82,13 +82,13 @@ function update(dt) {
     jumpPressed     = false;
     jumpHoldTime    = 0;
   }
-  // Extend jump if held, but cap hold time
+  // Extend jump while held, cut off quickly
   if (kongy.jumping && spaceHeld) {
     jumpHoldTime += dt;
     if (jumpHoldTime > MAX_JUMP_HOLD) spaceHeld = false;
   }
 
-  // Move & cleanup candles
+  // Move & prune candles
   candles.forEach(c => c.x -= SCROLL_SPEED * dt);
   candles = candles.filter(c => c.x + c.width > 0);
 
@@ -103,7 +103,7 @@ function update(dt) {
     timeSinceLastC = 0;
   }
 
-  // Move & cleanup power-ups
+  // Move & prune power-ups
   powerUps.forEach(p => p.x -= SCROLL_SPEED * dt);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
@@ -114,7 +114,7 @@ function update(dt) {
     timeSinceLastPU = 0;
   }
 
-  // Collect power-ups
+  // Pick up power-ups
   powerUps.forEach(p => {
     if (
       p.active &&
@@ -133,7 +133,7 @@ function update(dt) {
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
-  // Check collision with candles
+  // Candle collision
   for (let c of candles) {
     if (
       kongy.x < c.x + c.width &&
