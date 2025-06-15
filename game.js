@@ -3,14 +3,17 @@ const ctx = canvas.getContext("2d");
 
 // ——— Tuned Constants ———
 const SCROLL_SPEED      = 300;    // px/sec
-const GRAVITY           = 1800;   // px/sec² (much stronger pull)
-const JUMP_FORCE        = -900;   // px/sec initial
-const MAX_FALL_SPEED    = 1200;   // px/sec
+const GRAVITY           = 1200;   // px/sec²
+const JUMP_FORCE        = -800;   // px/sec
+const MAX_FALL_SPEED    = 1000;   // px/sec
 const CANDLE_WIDTH      = 20;
 const CANDLE_MIN_HEIGHT = 40;
 const CANDLE_MAX_HEIGHT = 80;
 const CANDLE_MIN_GAP    = 300;    // px
-const MAX_JUMP_HOLD     = 0.1;    // sec (tiny hold window)
+const MAX_JUMP_HOLD     = 0.2;    // sec
+
+const BASE_SCORE_RATE   = 60;     // points per second
+const MULTIPLIER        = 2;      // 2× pump
 
 let score     = 0;
 let lastTime  = performance.now() / 1000;
@@ -47,7 +50,7 @@ document.addEventListener("keyup", e => {
   if (e.code === "Space") {
     spaceHeld = false;
     if (kongy.vy < 0 && jumpHoldTime < MAX_JUMP_HOLD) {
-      kongy.vy *= 0.5;  // gentle cut if released early
+      kongy.vy *= 0.5;
     }
   }
 });
@@ -82,7 +85,7 @@ function update(dt) {
     jumpPressed     = false;
     jumpHoldTime    = 0;
   }
-  // Extend jump while held, cut off quickly
+  // Extend jump if held
   if (kongy.jumping && spaceHeld) {
     jumpHoldTime += dt;
     if (jumpHoldTime > MAX_JUMP_HOLD) spaceHeld = false;
@@ -114,7 +117,7 @@ function update(dt) {
     timeSinceLastPU = 0;
   }
 
-  // Pick up power-ups
+  // Collect power-ups (reset timer on each grab)
   powerUps.forEach(p => {
     if (
       p.active &&
@@ -124,7 +127,7 @@ function update(dt) {
       kongy.y + kongy.height > p.y
     ) {
       powerUpActive = true;
-      powerUpTimer  = 10;
+      powerUpTimer  = 10;  // full 10s on each grab
       p.active      = false;
     }
   });
@@ -147,8 +150,9 @@ function update(dt) {
     }
   }
 
-  // Time-based scoring
-  score += dt * (powerUpActive ? 120 : 60);
+  // Time-based scoring with multiplier
+  const scoreRate = BASE_SCORE_RATE * (powerUpActive ? MULTIPLIER : 1);
+  score += scoreRate * dt;
 }
 
 // ——— Draw ———
@@ -170,27 +174,27 @@ function draw() {
     if (p.active) {
       ctx.fillStyle = "rgba(0,0,0,0.2)";
       ctx.beginPath();
-      ctx.ellipse(p.x+10, canvas.height-5, 12,4, 0,0,Math.PI*2);
+      ctx.ellipse(p.x+10, canvas.height-5,12,4,0,0,Math.PI*2);
       ctx.fill();
       ctx.fillStyle = "gold";
       ctx.beginPath();
-      ctx.arc(p.x+10,p.y+10,10, 0,Math.PI*2);
+      ctx.arc(p.x+10,p.y+10,10,0,Math.PI*2);
       ctx.fill();
       ctx.fillStyle = "#000";
       ctx.font="10px monospace";
-      ctx.fillText("x2", p.x+3,p.y+14);
+      ctx.fillText("x2",p.x+3,p.y+14);
     }
   });
 
   // Score
   ctx.fillStyle="white";
   ctx.font="18px monospace";
-  ctx.fillText("Score: "+Math.floor(score), 680,30);
+  ctx.fillText(`Score: ${Math.floor(score)}`,680,30);
 
   if (powerUpActive) {
     ctx.fillStyle="yellow";
     ctx.font="bold 22px monospace";
-    ctx.fillText("💥 2X PUMP MODE! 💥",270,50);
+    ctx.fillText("💥 2X PUMP MODE!",270,50);
   }
 }
 
@@ -207,11 +211,18 @@ requestAnimationFrame(gameLoop);
 
 // ——— Restart ———
 restartBtn.onclick = () => {
-  score = 0; candles = []; powerUps = [];
-  kongy.y = 300; kongy.vy = 0; kongy.jumping = false;
-  timeSinceLastC = 0; timeSinceLastPU = 0;
-  powerUpTimer = 0; powerUpActive = false;
-  jumpHoldTime = 0; gameOver = false;
+  score = 0;
+  candles = [];
+  powerUps = [];
+  kongy.y = 300;
+  kongy.vy = 0;
+  kongy.jumping = false;
+  timeSinceLastC = 0;
+  timeSinceLastPU = 0;
+  powerUpTimer = 0;
+  powerUpActive = false;
+  jumpHoldTime = 0;
+  gameOver = false;
   overlay.style.display = "none";
   lastTime = performance.now() / 1000;
   requestAnimationFrame(gameLoop);
