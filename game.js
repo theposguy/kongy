@@ -1,10 +1,6 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ——— Load Pump Sound ———
-const pumpAudio = new Audio("pump.mp3");
-pumpAudio.volume = 0.5;
-
 // ——— Tuned Constants ———
 const SCROLL_SPEED      = 300;    // px/sec
 const GRAVITY           = 1200;   // px/sec²
@@ -69,7 +65,7 @@ function spawnPowerUp() {
 function update(dt) {
   if (gameOver) return;
 
-  // Gravity & vertical movement
+  // Gravity & movement
   kongy.vy += GRAVITY * dt;
   if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
   kongy.y += kongy.vy * dt;
@@ -129,9 +125,12 @@ function update(dt) {
       scoreMultiplier += 1;   // stack
       powerUpTimer   = 10;    // reset timer
       p.active       = false;
-      // Play the pump sound
-      pumpAudio.currentTime = 0;
-      pumpAudio.play();
+
+      // Robotic "Pump it!" voice
+      const utter = new SpeechSynthesisUtterance("Pump it!");
+      utter.rate = 1;
+      utter.pitch = 1.2;
+      speechSynthesis.speak(utter);
     }
   });
 
@@ -187,7 +186,7 @@ function draw() {
       ctx.fill();
       ctx.fillStyle = "#000";
       ctx.font="10px monospace";
-      ctx.fillText("×"+scoreMultiplier, p.x+2,p.y+14);
+      ctx.fillText(`×${scoreMultiplier}`, p.x+2,p.y+14);
     }
   });
 
