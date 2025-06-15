@@ -18,10 +18,43 @@
       background: #101010;
       border: 3px solid #444;
     }
+    #gameOverOverlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      text-align: center;
+      padding-top: 120px;
+      font-family: monospace;
+      z-index: 10;
+    }
+    #restartBtn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background: orange;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    #restartBtn:hover {
+      background: #ffb347;
+    }
   </style>
 </head>
 <body>
   <canvas id="game" width="800" height="400"></canvas>
-  <script src="game.js?v=5"></script>
+
+  <div id="gameOverOverlay">
+    <h1>💀 Game Over 💀</h1>
+    <p id="finalScoreText">Score: 0</p>
+    <button id="restartBtn">🚀 Ape Again</button>
+  </div>
+
+  <script src="game.js?v=6"></script>
 </body>
 </html>
