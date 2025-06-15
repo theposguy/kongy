@@ -24,11 +24,12 @@ let nextCandleIn = Math.floor(Math.random() * 60) + 60;
 let powerUpActive = false;
 let powerUpTimer = 0;
 
-// Jump buffer
+let powerUpTimerGlobal = 0;
+let nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
+
 let jumpPressed = false;
 let lastJumpTime = 0;
 
-// Controls
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     jumpPressed = true;
@@ -47,21 +48,10 @@ function spawnCandle() {
     height: height,
     color: color
   });
-
-  // 20% chance to spawn power-up on green candle
-  if (color === "green" && Math.random() < 0.2) {
-    powerUps.push({
-      x: canvas.width + 5,
-      y: canvas.height - height - 25,
-      width: 20,
-      height: 20,
-      active: true
-    });
-  }
 }
 
 function update() {
-  // Jump physics
+  // Physics
   kongy.vy += gravity;
   if (kongy.vy > maxFallSpeed) kongy.vy = maxFallSpeed;
   kongy.y += kongy.vy;
@@ -71,7 +61,6 @@ function update() {
     kongy.jumping = false;
   }
 
-  // Jump buffer
   if (!kongy.jumping && jumpPressed && Date.now() - lastJumpTime < 150) {
     kongy.vy = jumpPower;
     kongy.jumping = true;
@@ -82,12 +71,26 @@ function update() {
   candles.forEach(c => c.x -= 3.5);
   candles = candles.filter(c => c.x + c.width > 0);
 
-  // Spawn candles at random intervals
+  // Candle spawning
   candleTimer++;
   if (candleTimer >= nextCandleIn) {
     spawnCandle();
     candleTimer = 0;
     nextCandleIn = Math.floor(Math.random() * 60) + 60;
+  }
+
+  // Power-up spawn (independent)
+  powerUpTimerGlobal++;
+  if (powerUpTimerGlobal >= nextPowerUpIn) {
+    powerUps.push({
+      x: canvas.width,
+      y: Math.floor(Math.random() * 150) + 100,
+      width: 20,
+      height: 20,
+      active: true
+    });
+    powerUpTimerGlobal = 0;
+    nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
   }
 
   // Move power-ups
@@ -104,18 +107,17 @@ function update() {
       kongy.y + kongy.height > p.y
     ) {
       powerUpActive = true;
-      powerUpTimer = 600; // 10 seconds
+      powerUpTimer = 600;
       p.active = false;
     }
   });
 
-  // Power-up timer
   if (powerUpActive) {
     powerUpTimer--;
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
-  // Collision detection (candles)
+  // Collision with candles
   candles.forEach(c => {
     if (
       kongy.x < c.x + c.width &&
@@ -134,7 +136,7 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Kongy (placeholder)
+  // Kongy (block)
   ctx.fillStyle = "orange";
   ctx.fillRect(kongy.x, kongy.y, kongy.width, kongy.height);
 
@@ -147,10 +149,19 @@ function draw() {
   // Power-Ups
   powerUps.forEach(p => {
     if (p.active) {
+      // Shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.beginPath();
+      ctx.ellipse(p.x + 10, canvas.height - 5, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Coin
       ctx.fillStyle = "gold";
       ctx.beginPath();
       ctx.arc(p.x + 10, p.y + 10, 10, 0, Math.PI * 2);
       ctx.fill();
+
+      // Label
       ctx.fillStyle = "#000";
       ctx.font = "10px monospace";
       ctx.fillText("x2", p.x + 3, p.y + 14);
