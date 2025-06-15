@@ -1,6 +1,10 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// ——— Load Pump Sound ———
+const pumpAudio = new Audio("pump.mp3");
+pumpAudio.volume = 0.5;
+
 // ——— Tuned Constants ———
 const SCROLL_SPEED      = 300;    // px/sec
 const GRAVITY           = 1200;   // px/sec²
@@ -11,21 +15,20 @@ const CANDLE_MIN_HEIGHT = 40;
 const CANDLE_MAX_HEIGHT = 80;
 const CANDLE_MIN_GAP    = 300;    // px
 const MAX_JUMP_HOLD     = 0.2;    // sec
-const BASE_SCORE_RATE   = 60;     // points per second
+const BASE_SCORE_RATE   = 60;     // points/sec
 
 // ——— Game State ———
 let score           = 0;
 let lastTime        = performance.now() / 1000;
 let scoreMultiplier = 1;
-let powerUpTimer    = 0;       // seconds remaining on pump
+let powerUpTimer    = 0;
+let gameOver        = false;
 
 const kongy = { x:100, y:300, width:40, height:40, vy:0, jumping:false };
-
-let candles         = [];
-let powerUps        = [];
-let timeSinceLastC  = 0;
-let timeSinceLastPU = 0;
-let gameOver        = false;
+let candles          = [];
+let powerUps         = [];
+let timeSinceLastC   = 0;
+let timeSinceLastPU  = 0;
 
 // Jump control
 let jumpPressed    = false;
@@ -66,7 +69,7 @@ function spawnPowerUp() {
 function update(dt) {
   if (gameOver) return;
 
-  // Gravity & movement
+  // Gravity & vertical movement
   kongy.vy += GRAVITY * dt;
   if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
   kongy.y += kongy.vy * dt;
@@ -124,10 +127,14 @@ function update(dt) {
       kongy.y + kongy.height > p.y
     ) {
       scoreMultiplier += 1;   // stack
-      powerUpTimer   = 10;    // reset full 10s
+      powerUpTimer   = 10;    // reset timer
       p.active       = false;
+      // Play the pump sound
+      pumpAudio.currentTime = 0;
+      pumpAudio.play();
     }
   });
+
   // Pump timer countdown
   if (scoreMultiplier > 1) {
     powerUpTimer -= dt;
@@ -184,7 +191,7 @@ function draw() {
     }
   });
 
-  // Score (with one decimal so the speed change is obvious)
+  // Score
   ctx.fillStyle="white";
   ctx.font="18px monospace";
   ctx.fillText(`Score: ${score.toFixed(1)}`,600,30);
