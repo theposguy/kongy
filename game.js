@@ -9,7 +9,7 @@ let score = 0;
 // Game timing
 let lastTime = performance.now();
 
-// Kongy character
+// Kongy
 const kongy = {
   x: 100,
   y: 300,
@@ -32,12 +32,12 @@ let jumpPressed = false;
 let lastJumpTime = 0;
 let gameOver = false;
 
-// DOM overlay
+// DOM elements
 const overlay = document.getElementById("gameOverOverlay");
 const restartBtn = document.getElementById("restartBtn");
 const finalScoreText = document.getElementById("finalScoreText");
 
-// Input
+// Controls
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     jumpPressed = true;
@@ -48,7 +48,6 @@ document.addEventListener("keydown", (e) => {
 function spawnCandle() {
   const height = Math.random() * 40 + 40;
   const color = Math.random() < 0.7 ? "green" : "red";
-
   candles.push({
     x: canvas.width,
     y: canvas.height - height,
@@ -107,7 +106,7 @@ function update(deltaTime) {
   powerUps.forEach(p => p.x -= 3.5 * deltaTime);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
-  // Power-up collection
+  // Collect power-ups
   powerUps.forEach((p) => {
     if (
       p.active &&
@@ -127,7 +126,7 @@ function update(deltaTime) {
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
-  // Collision detection
+  // Collision check
   for (let c of candles) {
     if (
       kongy.x < c.x + c.width &&
@@ -141,24 +140,21 @@ function update(deltaTime) {
     }
   }
 
-  // Add score
+  // Score
   score += powerUpActive ? 2 : 1;
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Kongy
   ctx.fillStyle = "orange";
   ctx.fillRect(kongy.x, kongy.y, kongy.width, kongy.height);
 
-  // Candles
   candles.forEach(c => {
     ctx.fillStyle = c.color;
     ctx.fillRect(c.x, c.y, c.width, c.height);
   });
 
-  // Power-Ups
   powerUps.forEach(p => {
     if (p.active) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
@@ -177,7 +173,6 @@ function draw() {
     }
   });
 
-  // Score
   ctx.fillStyle = "white";
   ctx.font = "18px monospace";
   ctx.fillText("Score: " + score, 680, 30);
@@ -190,7 +185,8 @@ function draw() {
 }
 
 function gameLoop(currentTime) {
-  const deltaTime = (currentTime - lastTime) / (1000 / 60);
+  let deltaTime = (currentTime - lastTime) / (1000 / 60);
+  if (deltaTime > 3) deltaTime = 1; // clamp for resume slowdowns
   lastTime = currentTime;
 
   update(deltaTime);
@@ -200,9 +196,8 @@ function gameLoop(currentTime) {
 
 requestAnimationFrame(gameLoop);
 
-// Restart logic
+// Restart
 restartBtn.onclick = () => {
-  // Reset everything
   score = 0;
   candles = [];
   powerUps = [];
