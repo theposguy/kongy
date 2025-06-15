@@ -1,15 +1,19 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const gravity = 0.5;
-const jumpPower = -14;
-const maxFallSpeed = 8;
+// Speeds in pixels per second
+const SCROLL_SPEED = 120;
+const GRAVITY = 1000;
+const JUMP_FORCE = -450;
+const MAX_FALL_SPEED = 600;
+const CANDLE_WIDTH = 20;
+const CANDLE_MIN_HEIGHT = 40;
+const CANDLE_MAX_HEIGHT = 80;
+const CANDLE_MIN_GAP = 180;
+
 let score = 0;
+let lastTime = performance.now() / 1000; // in seconds
 
-// Game timing
-let lastTime = performance.now();
-
-// Kongy
 const kongy = {
   x: 100,
   y: 300,
@@ -19,18 +23,15 @@ const kongy = {
   jumping: false
 };
 
-// Game state
 let candles = [];
 let powerUps = [];
-let candleTimer = 0;
-let nextCandleIn = Math.floor(Math.random() * 90) + 100; // ⬅️ More spacing
+let timeSinceLastCandle = 0;
+let timeSinceLastPowerUp = 0;
 let powerUpActive = false;
 let powerUpTimer = 0;
-let powerUpTimerGlobal = 0;
-let nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
+let gameOver = false;
 let jumpPressed = false;
 let lastJumpTime = 0;
-let gameOver = false;
 
 // DOM elements
 const overlay = document.getElementById("gameOverOverlay");
@@ -46,67 +47,74 @@ document.addEventListener("keydown", (e) => {
 });
 
 function spawnCandle() {
-  const height = Math.random() * 40 + 40;
+  const height = Math.random() * (CANDLE_MAX_HEIGHT - CANDLE_MIN_HEIGHT) + CANDLE_MIN_HEIGHT;
   const color = Math.random() < 0.7 ? "green" : "red";
   candles.push({
     x: canvas.width,
     y: canvas.height - height,
-    width: 20,
+    width: CANDLE_WIDTH,
     height: height,
     color: color
   });
 }
 
-function update(deltaTime) {
+function spawnPowerUp() {
+  powerUps.push({
+    x: canvas.width,
+    y: Math.random() * 150 + 100,
+    width: 20,
+    height: 20,
+    active: true
+  });
+}
+
+function update(dt) {
   if (gameOver) return;
 
-  // Physics
-  kongy.vy += gravity;
-  if (kongy.vy > maxFallSpeed) kongy.vy = maxFallSpeed;
-  kongy.y += kongy.vy;
+  // Apply gravity
+  kongy.vy += GRAVITY * dt;
+  if (kongy.vy > MAX_FALL_SPEED) kongy.vy = MAX_FALL_SPEED;
+  kongy.y += kongy.vy * dt;
 
   if (kongy.y + kongy.height >= canvas.height) {
     kongy.y = canvas.height - kongy.height;
     kongy.jumping = false;
   }
 
+  // Jump buffer
   if (!kongy.jumping && jumpPressed && Date.now() - lastJumpTime < 150) {
-    kongy.vy = jumpPower;
+    kongy.vy = JUMP_FORCE;
     kongy.jumping = true;
     jumpPressed = false;
   }
 
   // Move candles
-  candles.forEach(c => c.x -= deltaTime * 1.5); // ⬅️ Frame-rate balanced speed
+  candles.forEach(c => c.x -= SCROLL_SPEED * dt);
   candles = candles.filter(c => c.x + c.width > 0);
 
-  // Spawn candles
-  candleTimer++;
-  if (candleTimer >= nextCandleIn) {
+  // Spawn new candle if far enough
+  timeSinceLastCandle += dt;
+  const lastCandle = candles[candles.length - 1];
+  if (
+    !lastCandle ||
+    canvas.width - lastCandle.x > CANDLE_MIN_GAP
+  ) {
     spawnCandle();
-    candleTimer = 0;
-    nextCandleIn = Math.floor(Math.random() * 90) + 100; // ⬅️ Wider spacing
-  }
-
-  // Spawn power-ups
-  powerUpTimerGlobal++;
-  if (powerUpTimerGlobal >= nextPowerUpIn) {
-    powerUps.push({
-      x: canvas.width,
-      y: Math.floor(Math.random() * 150) + 100,
-      width: 20,
-      height: 20,
-      active: true
-    });
-    powerUpTimerGlobal = 0;
-    nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
+    timeSinceLastCandle = 0;
   }
 
   // Move power-ups
-  powerUps.forEach(p => p.x -= deltaTime * 1.5); // ⬅️ Balanced too
+  powerUps.forEach(p => p.x -= SCROLL_SPEED * dt);
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
-  // Collect power-ups
+  // Spawn power-up occasionally
+  timeSinceLastPowerUp += dt;
+  if (timeSinceLastPowerUp > 5) {
+    spawnPowerUp();
+    timeSinceLastPowerUp = 0;
+  }
+
+  // Power-up collision
   powerUps.forEach((p) => {
     if (
       p.active &&
@@ -116,17 +124,17 @@ function update(deltaTime) {
       kongy.y + kongy.height > p.y
     ) {
       powerUpActive = true;
-      powerUpTimer = 600;
+      powerUpTimer = 10;
       p.active = false;
     }
   });
 
   if (powerUpActive) {
-    powerUpTimer--;
+    powerUpTimer -= dt;
     if (powerUpTimer <= 0) powerUpActive = false;
   }
 
-  // Collision check
+  // Collision detection
   for (let c of candles) {
     if (
       kongy.x < c.x + c.width &&
@@ -157,7 +165,7 @@ function draw() {
     ctx.fillRect(c.x, c.y, c.width, c.height);
   });
 
-  // Power-Ups
+  // Power-ups
   powerUps.forEach(p => {
     if (p.active) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
@@ -176,6 +184,7 @@ function draw() {
     }
   });
 
+  // Score
   ctx.fillStyle = "white";
   ctx.font = "18px monospace";
   ctx.fillText("Score: " + score, 680, 30);
@@ -188,33 +197,31 @@ function draw() {
 }
 
 function gameLoop(currentTime) {
-  let deltaTime = (currentTime - lastTime) / 1000 * 60; // true delta in 60fps units
-  if (deltaTime > 3) deltaTime = 1; // clamp slow frames
-  lastTime = currentTime;
+  const now = currentTime / 1000;
+  const dt = Math.min(now - lastTime, 0.05); // max 50ms per frame
+  lastTime = now;
 
-  update(deltaTime);
+  update(dt);
   draw();
   if (!gameOver) requestAnimationFrame(gameLoop);
 }
 
 requestAnimationFrame(gameLoop);
 
-// Restart
+// Restart button
 restartBtn.onclick = () => {
   score = 0;
   candles = [];
   powerUps = [];
-  candleTimer = 0;
-  powerUpTimerGlobal = 0;
-  powerUpActive = false;
-  powerUpTimer = 0;
-  nextCandleIn = Math.floor(Math.random() * 90) + 100;
-  nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
   kongy.y = 300;
   kongy.vy = 0;
   kongy.jumping = false;
+  timeSinceLastCandle = 0;
+  timeSinceLastPowerUp = 0;
+  powerUpTimer = 0;
+  powerUpActive = false;
   gameOver = false;
   overlay.style.display = "none";
-  lastTime = performance.now();
+  lastTime = performance.now() / 1000;
   requestAnimationFrame(gameLoop);
 };
