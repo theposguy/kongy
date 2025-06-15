@@ -23,7 +23,7 @@ const kongy = {
 let candles = [];
 let powerUps = [];
 let candleTimer = 0;
-let nextCandleIn = Math.floor(Math.random() * 60) + 60;
+let nextCandleIn = Math.floor(Math.random() * 90) + 100; // ⬅️ More spacing
 let powerUpActive = false;
 let powerUpTimer = 0;
 let powerUpTimerGlobal = 0;
@@ -77,7 +77,7 @@ function update(deltaTime) {
   }
 
   // Move candles
-  candles.forEach(c => c.x -= 3.5 * deltaTime);
+  candles.forEach(c => c.x -= deltaTime * 1.5); // ⬅️ Frame-rate balanced speed
   candles = candles.filter(c => c.x + c.width > 0);
 
   // Spawn candles
@@ -85,7 +85,7 @@ function update(deltaTime) {
   if (candleTimer >= nextCandleIn) {
     spawnCandle();
     candleTimer = 0;
-    nextCandleIn = Math.floor(Math.random() * 60) + 60;
+    nextCandleIn = Math.floor(Math.random() * 90) + 100; // ⬅️ Wider spacing
   }
 
   // Spawn power-ups
@@ -103,7 +103,7 @@ function update(deltaTime) {
   }
 
   // Move power-ups
-  powerUps.forEach(p => p.x -= 3.5 * deltaTime);
+  powerUps.forEach(p => p.x -= deltaTime * 1.5); // ⬅️ Balanced too
   powerUps = powerUps.filter(p => p.x + p.width > 0);
 
   // Collect power-ups
@@ -147,14 +147,17 @@ function update(deltaTime) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Kongy
   ctx.fillStyle = "orange";
   ctx.fillRect(kongy.x, kongy.y, kongy.width, kongy.height);
 
+  // Candles
   candles.forEach(c => {
     ctx.fillStyle = c.color;
     ctx.fillRect(c.x, c.y, c.width, c.height);
   });
 
+  // Power-Ups
   powerUps.forEach(p => {
     if (p.active) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
@@ -185,8 +188,8 @@ function draw() {
 }
 
 function gameLoop(currentTime) {
-  let deltaTime = (currentTime - lastTime) / (1000 / 60);
-  if (deltaTime > 3) deltaTime = 1; // clamp for resume slowdowns
+  let deltaTime = (currentTime - lastTime) / 1000 * 60; // true delta in 60fps units
+  if (deltaTime > 3) deltaTime = 1; // clamp slow frames
   lastTime = currentTime;
 
   update(deltaTime);
@@ -205,7 +208,7 @@ restartBtn.onclick = () => {
   powerUpTimerGlobal = 0;
   powerUpActive = false;
   powerUpTimer = 0;
-  nextCandleIn = Math.floor(Math.random() * 60) + 60;
+  nextCandleIn = Math.floor(Math.random() * 90) + 100;
   nextPowerUpIn = Math.floor(Math.random() * 300) + 500;
   kongy.y = 300;
   kongy.vy = 0;
