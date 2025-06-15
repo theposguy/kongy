@@ -11,28 +11,27 @@ const CANDLE_MIN_HEIGHT = 40;
 const CANDLE_MAX_HEIGHT = 80;
 const CANDLE_MIN_GAP    = 300;    // px
 const MAX_JUMP_HOLD     = 0.2;    // sec
-
 const BASE_SCORE_RATE   = 60;     // points per second
-const MULTIPLIER        = 2;      // 2× pump
 
-let score     = 0;
-let lastTime  = performance.now() / 1000;
+// ——— Game State ———
+let score           = 0;
+let lastTime        = performance.now() / 1000;
+let scoreMultiplier = 1;
+let powerUpTimer    = 0;       // seconds remaining on pump
 
 const kongy = { x:100, y:300, width:40, height:40, vy:0, jumping:false };
 
-let candles            = [];
-let powerUps           = [];
-let timeSinceLastC     = 0;
-let timeSinceLastPU    = 0;
-let powerUpActive      = false;
-let powerUpTimer       = 0;
-let gameOver           = false;
+let candles         = [];
+let powerUps        = [];
+let timeSinceLastC  = 0;
+let timeSinceLastPU = 0;
+let gameOver        = false;
 
 // Jump control
-let jumpPressed   = false;
-let lastJumpTime  = 0;
-let spaceHeld     = false;
-let jumpHoldTime  = 0;
+let jumpPressed    = false;
+let lastJumpTime   = 0;
+let spaceHeld      = false;
+let jumpHoldTime   = 0;
 
 // DOM Elements
 const overlay        = document.getElementById("gameOverOverlay");
@@ -49,9 +48,7 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keyup", e => {
   if (e.code === "Space") {
     spaceHeld = false;
-    if (kongy.vy < 0 && jumpHoldTime < MAX_JUMP_HOLD) {
-      kongy.vy *= 0.5;
-    }
+    if (kongy.vy < 0 && jumpHoldTime < MAX_JUMP_HOLD) kongy.vy *= 0.5;
   }
 });
 
@@ -117,7 +114,7 @@ function update(dt) {
     timeSinceLastPU = 0;
   }
 
-  // Collect power-ups (reset timer on each grab)
+  // Collect power-ups (stack multipliers)
   powerUps.forEach(p => {
     if (
       p.active &&
@@ -126,14 +123,15 @@ function update(dt) {
       kongy.y < p.y + p.height &&
       kongy.y + kongy.height > p.y
     ) {
-      powerUpActive = true;
-      powerUpTimer  = 10;  // full 10s on each grab
-      p.active      = false;
+      scoreMultiplier += 1;   // stack
+      powerUpTimer   = 10;    // reset full 10s
+      p.active       = false;
     }
   });
-  if (powerUpActive) {
+  // Pump timer countdown
+  if (scoreMultiplier > 1) {
     powerUpTimer -= dt;
-    if (powerUpTimer <= 0) powerUpActive = false;
+    if (powerUpTimer <= 0) scoreMultiplier = 1;
   }
 
   // Candle collision
@@ -151,8 +149,8 @@ function update(dt) {
   }
 
   // Time-based scoring with multiplier
-  const scoreRate = BASE_SCORE_RATE * (powerUpActive ? MULTIPLIER : 1);
-  score += scoreRate * dt;
+  const rate = BASE_SCORE_RATE * scoreMultiplier;
+  score += rate * dt;
 }
 
 // ——— Draw ———
@@ -182,19 +180,25 @@ function draw() {
       ctx.fill();
       ctx.fillStyle = "#000";
       ctx.font="10px monospace";
-      ctx.fillText("x2",p.x+3,p.y+14);
+      ctx.fillText("×"+scoreMultiplier, p.x+2,p.y+14);
     }
   });
 
-  // Score
+  // Score (with one decimal so the speed change is obvious)
   ctx.fillStyle="white";
   ctx.font="18px monospace";
-  ctx.fillText(`Score: ${Math.floor(score)}`,680,30);
+  ctx.fillText(`Score: ${score.toFixed(1)}`,600,30);
 
-  if (powerUpActive) {
+  // Rate display
+  ctx.fillStyle="cyan";
+  ctx.font="14px monospace";
+  ctx.fillText(`Rate: ${Math.round(BASE_SCORE_RATE*scoreMultiplier)} pps`,600,50);
+
+  // Pump banner
+  if (scoreMultiplier > 1) {
     ctx.fillStyle="yellow";
     ctx.font="bold 22px monospace";
-    ctx.fillText("💥 2X PUMP MODE!",270,50);
+    ctx.fillText(`💥 ${scoreMultiplier}X PUMP MODE!`,250,80);
   }
 }
 
@@ -211,19 +215,18 @@ requestAnimationFrame(gameLoop);
 
 // ——— Restart ———
 restartBtn.onclick = () => {
-  score = 0;
-  candles = [];
-  powerUps = [];
-  kongy.y = 300;
-  kongy.vy = 0;
-  kongy.jumping = false;
-  timeSinceLastC = 0;
-  timeSinceLastPU = 0;
-  powerUpTimer = 0;
-  powerUpActive = false;
-  jumpHoldTime = 0;
-  gameOver = false;
+  score             = 0;
+  scoreMultiplier   = 1;
+  candles           = [];
+  powerUps          = [];
+  kongy.y           = 300;
+  kongy.vy          = 0;
+  kongy.jumping     = false;
+  timeSinceLastC    = 0;
+  timeSinceLastPU   = 0;
+  powerUpTimer      = 0;
+  gameOver          = false;
   overlay.style.display = "none";
-  lastTime = performance.now() / 1000;
+  lastTime          = performance.now() / 1000;
   requestAnimationFrame(gameLoop);
 };
