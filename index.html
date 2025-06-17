@@ -5,53 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kongy: Candle Jumper</title>
   <style>
-    body {
-      margin: 0;
-      background: #1a1a1a;
-      color: white;
-      font-family: monospace;
-      overflow: hidden;
-      position: relative;
-    }
-    canvas {
-      display: block;
-      margin: 0 auto;
-      background: #101010;
-      border: 3px solid #444;
-    }
+    body { margin:0; background:#1a1a1a; color:white; font-family:monospace; overflow:hidden; }
+    canvas { display:block; margin:0 auto; background:#101010; border:3px solid #444; }
     #gameOverOverlay {
-      display: none;
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 800px; height: 400px;
-      background: rgba(0,0,0,0.9);
-      text-align: center;
-      padding-top: 120px;
-      z-index: 10;
+      display:none; position:absolute; top:0; left:50%; transform:translateX(-50%);
+      width:800px; height:400px; background:rgba(0,0,0,0.9); text-align:center;
+      padding-top:120px; z-index:10;
     }
-    #restartBtn {
-      margin-top: 20px;
-      padding: 12px 24px;
-      font-size: 16px;
-      background: orange;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    #restartBtn:hover { background: #ffb347; }
+    #restartBtn { margin-top:20px; padding:12px 24px; font-size:16px;
+                  background:orange; border:none; border-radius:6px; cursor:pointer; }
+    #restartBtn:hover { background:#ffb347; }
   </style>
 </head>
 <body>
   <canvas id="game" width="800" height="400"></canvas>
-
   <div id="gameOverOverlay">
     <h1>💀 Game Over 💀</h1>
     <p id="finalScoreText">Score: 0</p>
     <button id="restartBtn">🚀 Ape Again</button>
   </div>
-
-  <!-- Cache-bust on each update -->
-  <script src="game.js?v=19"></script>
+  <!-- bump on each update -->
+  <script src="game.js?v=20"></script>
 </body>
 </html>
