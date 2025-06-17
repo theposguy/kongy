@@ -22,11 +22,9 @@
     #gameOverOverlay {
       display: none;
       position: absolute;
-      top: 0;
-      left: 50%;
+      top: 0; left: 50%;
       transform: translateX(-50%);
-      width: 800px;
-      height: 400px;
+      width: 800px; height: 400px;
       background: rgba(0,0,0,0.9);
       text-align: center;
       padding-top: 120px;
@@ -41,9 +39,7 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    #restartBtn:hover {
-      background: #ffb347;
-    }
+    #restartBtn:hover { background: #ffb347; }
   </style>
 </head>
 <body>
@@ -55,7 +51,7 @@
     <button id="restartBtn">🚀 Ape Again</button>
   </div>
 
-  <!-- cache-bust -->
-  <script src="game.js?v=18"></script>
+  <!-- Cache-bust on each update -->
+  <script src="game.js?v=19"></script>
 </body>
 </html>
